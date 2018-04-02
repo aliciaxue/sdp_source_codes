@@ -1,0 +1,44 @@
+		single_layer_mem (bytes)	trainable_param (bytes)
+Input_1 	472.4K				0			#data = Reshape((100, 294, 4))(data)
+//split the input into tag, strand and data
+Lambda_1(tag)	1.6K				0			#tag = Lambda(lambda x: x[:, :, 588:592])(inputs)
+Lambda_2(strand)400				0			#strand = Lambda(lambda x: x[:, :, 1180:])(inputs)
+Concatenate_1	2K				0			#tag_and_strand = concatenate([tag, strand])
+Lambda_3	235.2K				0			#data_1 = Lambda(lambda x: x[:, :, :588])(inputs)
+Lambda_4	235.2K				0			#data_2 = Lambda(lambda x: x[:, :, 592:1180])(inputs)
+Concatenate_2	470.4K				0 			#data = concatenate([data_1, data_2])
+(data)
+//row-to-row convolution on the data parts
+Reshape_1	470.4K				0			#data = Reshape((100, 294, 4))(data)
+Lambda_5	467.2K				0			#data_copy_1 = Lambda(lambda x: x[:, :, 2:, :])(data)
+Lambda_6	467.2K				0			#data_copy_2 = Lambda(lambda x: x[:, :, 1:293, :])(data)
+Lambda_7	467.2K				0			#data_copy_3 = Lambda(lambda x: x[:, :, 0:292, :])(data)
+Concatenate_3	934.4K				0			#data_processed = concatenate([data_copy_1, data_copy_2])
+Concatenate_4	1.401M				0			#data_processed = concatenate([data_processed, data_copy_3])
+(equivalent to using a filter size of 3 in the row-invariant convolution)
+Reshape_2	1.401M				0			#data_processed = Reshape((100, 292, 4, 3))(data_processed)
+Permute_1	1.401M				0			#data_processed = Permute((1, 4, 3, 2))(data_processed)
+Flatten_1	1.401M				0			#data_processed = Flatten()(data_processed)
+Repeat_Vector_1	140.1M				0			#data_processed = RepeatVector(100)(data_processed)
+Reshape_3	140.1M				0			#data_processed = Reshape((100, 100, 292, 4, 3))(data_processed)
+Permute_2	140.1M				0			#data_transpose = Permute((2, 1, 3, 4, 5))(data_processed)
+Concatenate_5	280.2M				0			#data_combined = concatenate([data_processed, data_transpose])
+Reshape_4	280.2M				0			#data_combined = Reshape((2920000, 24))(data_combined)
+Conv1D_1	350.4M				3K			#data_combined = Conv1D(30, 1, padding='valid', activation='selu')(data_combined)
+Conv1D_2	93.44M				992			#data_combined = Conv1D(8, 1, padding='valid', activation='selu')(data_combined)
+//row-invariant average pooling
+AvgPooling1D_1	3.2K				0			#data_combined = AveragePooling1D(pool_size=29200, strides=None, padding='valid')(data_combined)
+//concatenate processed data, tag and strand
+Concatenate_6	5.2K				0			#input_combined = concatenate([tag_and_strand, data_combined])
+//row-invariant convolution on the combined
+Conv1D_3	5.2K				728			#input_combined = Conv1D(13, 1, padding = 'valid', activation = 'selu')(input_combined)
+Conv1D_4	3.2K				448			#input_combined = Conv1D(8, 1, padding = 'valid', activation = 'selu')(input_combined)
+//dense layers
+Flatten_2	3.2K				0			#input_combined = Flatten()(input_combined)
+Dense_1		2K				1.602M			#input_combined = Dense(500, activation = 'selu')(input_combined)
+Dense_2		320				160.3K			#input_combined = Dense(80, activation = 'selu')(input_combined)
+Dropout		320				0			#input_combined = Dropout(0.2)(input_combined)
+Dense_3		40				3.24K			#predictions = Dense(10, activation = 'softmax')(input_combined)
+s			
+
+
